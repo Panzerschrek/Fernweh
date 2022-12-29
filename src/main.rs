@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate glium;
 
-//mod support;
 
 #[allow(unused_imports)]
 use glium::{glutin, Surface};
@@ -10,7 +9,7 @@ use glium::index::PrimitiveType;
 fn main() {
     let event_loop = glutin::event_loop::EventLoop::new();
     let wb = glutin::window::WindowBuilder::new();
-    let cb = glutin::ContextBuilder::new();
+    let cb = glutin::ContextBuilder::new().with_gl_profile(glutin::GlProfile::Core).with_vsync(true).with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGl, (4, 3)));
     let display = glium::Display::new(wb, cb, &event_loop).unwrap();
 
     // building the vertex buffer, which contains all the vertices that we will draw
@@ -38,9 +37,9 @@ fn main() {
 
     // compiling shaders and linking them together
     let program = program!(&display,
-        140 => {
+        430 => {
             vertex: "
-                #version 140
+                #version 430
                 uniform mat4 matrix;
                 in vec2 position;
                 in vec3 color;
@@ -52,57 +51,13 @@ fn main() {
             ",
 
             fragment: "
-                #version 140
+                #version 430
                 in vec3 vColor;
                 out vec4 f_color;
                 void main() {
                     f_color = vec4(vColor, 1.0);
                 }
             "
-        },
-
-        110 => {
-            vertex: "
-                #version 110
-                uniform mat4 matrix;
-                attribute vec2 position;
-                attribute vec3 color;
-                varying vec3 vColor;
-                void main() {
-                    gl_Position = vec4(position, 0.0, 1.0) * matrix;
-                    vColor = color;
-                }
-            ",
-
-            fragment: "
-                #version 110
-                varying vec3 vColor;
-                void main() {
-                    gl_FragColor = vec4(vColor, 1.0);
-                }
-            ",
-        },
-
-        100 => {
-            vertex: "
-                #version 100
-                uniform lowp mat4 matrix;
-                attribute lowp vec2 position;
-                attribute lowp vec3 color;
-                varying lowp vec3 vColor;
-                void main() {
-                    gl_Position = vec4(position, 0.0, 1.0) * matrix;
-                    vColor = color;
-                }
-            ",
-
-            fragment: "
-                #version 100
-                varying lowp vec3 vColor;
-                void main() {
-                    gl_FragColor = vec4(vColor, 1.0);
-                }
-            ",
         },
     ).unwrap();
 
