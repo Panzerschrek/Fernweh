@@ -1,55 +1,108 @@
 #[allow(dead_code)]
 mod math_types;
 
-use glium::{glutin, Surface};
+use glium::glutin;
 use math_types::*;
 
 fn main()
 {
-	let event_loop = glutin::event_loop::EventLoop::new();
-	let wb = glutin::window::WindowBuilder::new();
+	let wb = glutin::window::WindowBuilder::new()
+		.with_inner_size(glutin::dpi::PhysicalSize {
+			width: 640,
+			height: 480,
+		})
+		.with_min_inner_size(glutin::dpi::PhysicalSize {
+			width: 320,
+			height: 240,
+		});
+
 	let cb = glutin::ContextBuilder::new()
 		.with_gl_profile(glutin::GlProfile::Core)
 		.with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGl, (4, 3)))
 		.with_vsync(true);
+
+	let event_loop = glutin::event_loop::EventLoop::new();
+
 	let display = glium::Display::new(wb, cb, &event_loop).unwrap();
 
-	let vertices = [
-		Vertex {
-			position: [-0.5, -0.5],
-			color: [0.0, 1.0, 0.0, 1.0],
-		},
-		Vertex {
-			position: [0.0, 0.5],
-			color: [0.0, 0.0, 1.0, 0.5],
-		},
-		Vertex {
-			position: [0.5, -0.5],
-			color: [1.0, 0.0, 0.0, 0.25],
-		},
-		Vertex {
-			position: [0.0, 0.0],
-			color: [1.0, 1.0, 1.0, 0.125],
-		},
-	];
+	let fernweh = Fernweh::new(&display);
 
-	let indices = [0u16, 1, 2, 0, 2, 3];
+	event_loop.run(move |event, _, control_flow| {
+		*control_flow = match event
+		{
+			glutin::event::Event::WindowEvent { event, .. } => match event
+			{
+				// Break from the main loop when the window is closed.
+				glutin::event::WindowEvent::CloseRequested => glutin::event_loop::ControlFlow::Exit,
+				_ => glutin::event_loop::ControlFlow::Poll,
+			},
+			glutin::event::Event::MainEventsCleared =>
+			{
+				let mut target = display.draw();
+				fernweh.draw(&mut target);
+				target.finish().unwrap();
+				glutin::event_loop::ControlFlow::Poll
+			},
+			_ => glutin::event_loop::ControlFlow::Poll,
+		};
+	});
+}
 
-	let vertex_buffer = glium::VertexBuffer::new(&display, &vertices).unwrap();
-	let index_buffer = glium::IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &indices).unwrap();
+struct Fernweh
+{
+	vertex_buffer: glium::VertexBuffer<Vertex>,
+	index_buffer: glium::IndexBuffer<u16>,
+	program: glium::Program,
+	start_time: std::time::Instant,
+}
 
-	let program = glium::Program::from_source(&display, VERTEX_SHADER, FRAGMENT_SHADER, None).unwrap();
+impl Fernweh
+{
+	fn new(display: &glium::Display) -> Self
+	{
+		let vertices = [
+			Vertex {
+				position: [-0.5, -0.5],
+				color: [0.0, 1.0, 0.0, 1.0],
+			},
+			Vertex {
+				position: [0.0, 0.5],
+				color: [0.0, 0.0, 1.0, 0.5],
+			},
+			Vertex {
+				position: [0.5, -0.5],
+				color: [1.0, 0.0, 0.0, 0.25],
+			},
+			Vertex {
+				position: [0.0, 0.0],
+				color: [1.0, 1.0, 1.0, 0.125],
+			},
+		];
 
-	let start_time = std::time::Instant::now();
+		let indices = [0, 1, 2, 0, 2, 3];
 
-	let draw = move || {
+		let vertex_buffer = glium::VertexBuffer::new(display, &vertices).unwrap();
+		let index_buffer =
+			glium::IndexBuffer::new(display, glium::index::PrimitiveType::TrianglesList, &indices).unwrap();
+
+		let program = glium::Program::from_source(display, VERTEX_SHADER, FRAGMENT_SHADER, None).unwrap();
+
+		Self {
+			vertex_buffer,
+			index_buffer,
+			program,
+			start_time: std::time::Instant::now(),
+		}
+	}
+
+	fn draw<S: glium::Surface>(&self, surface: &mut S)
+	{
 		let cur_time = std::time::Instant::now();
-		let abs_time_s = (cur_time - start_time).as_secs_f32();
+		let abs_time_s = (cur_time - self.start_time).as_secs_f32();
 
-		let mut target = display.draw();
-		target.clear_color(0.0, 0.0, 0.0, 0.0);
+		surface.clear_color(0.0, 0.0, 0.0, 0.0);
 
-		let (width, height) = target.get_dimensions();
+		let (width, height) = surface.get_dimensions();
 		let aspect = (height as f32) / (width as f32);
 
 		let rotation_matrix = Mat4f::from_angle_z(Rad(abs_time_s));
@@ -65,29 +118,16 @@ fn main()
 			..Default::default()
 		};
 
-		target
-			.draw(&vertex_buffer, &index_buffer, &program, &uniforms, &drawing_params)
+		surface
+			.draw(
+				&self.vertex_buffer,
+				&self.index_buffer,
+				&self.program,
+				&uniforms,
+				&drawing_params,
+			)
 			.unwrap();
-		target.finish().unwrap();
-	};
-
-	event_loop.run(move |event, _, control_flow| {
-		*control_flow = match event
-		{
-			glutin::event::Event::WindowEvent { event, .. } => match event
-			{
-				// Break from the main loop when the window is closed.
-				glutin::event::WindowEvent::CloseRequested => glutin::event_loop::ControlFlow::Exit,
-				_ => glutin::event_loop::ControlFlow::Poll,
-			},
-			glutin::event::Event::MainEventsCleared =>
-			{
-				draw();
-				glutin::event_loop::ControlFlow::Poll
-			},
-			_ => glutin::event_loop::ControlFlow::Poll,
-		};
-	});
+	}
 }
 
 #[derive(Copy, Clone)]
