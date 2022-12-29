@@ -3,13 +3,6 @@
 version = 3
 
 [[package]]
-name = "Fernweh"
-version = "0.1.0"
-dependencies = [
- "glium",
-]
-
-[[package]]
 name = "addr2line"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -324,6 +317,13 @@ checksum = "658f19728920138342f68408b7cf7644d90d4784353d8ebc32e7e8663dbe45fa"
 dependencies = [
  "cmake",
  "pkg-config",
+]
+
+[[package]]
+name = "fernweh"
+version = "0.1.0"
+dependencies = [
+ "glium",
 ]
 
 [[package]]

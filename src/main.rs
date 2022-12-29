@@ -1,8 +1,3 @@
-#[macro_use]
-extern crate glium;
-
-use glium::index::PrimitiveType;
-#[allow(unused_imports)]
 use glium::{glutin, Surface};
 
 fn main()
@@ -11,79 +6,38 @@ fn main()
 	let wb = glutin::window::WindowBuilder::new();
 	let cb = glutin::ContextBuilder::new()
 		.with_gl_profile(glutin::GlProfile::Core)
-		.with_vsync(true)
-		.with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGl, (4, 3)));
+		.with_gl(glutin::GlRequest::Specific(glutin::Api::OpenGl, (4, 3)))
+		.with_vsync(true);
 	let display = glium::Display::new(wb, cb, &event_loop).unwrap();
 
-	// building the vertex buffer, which contains all the vertices that we will draw
-	let vertex_buffer = {
-		#[derive(Copy, Clone)]
-		struct Vertex
-		{
-			position: [f32; 2],
-			color: [f32; 3],
-		}
-
-		implement_vertex!(Vertex, position, color);
-
-		glium::VertexBuffer::new(
-			&display,
-			&[
-				Vertex {
-					position: [-0.5, -0.5],
-					color: [0.0, 1.0, 0.0],
-				},
-				Vertex {
-					position: [0.0, 0.5],
-					color: [0.0, 0.0, 1.0],
-				},
-				Vertex {
-					position: [0.5, -0.5],
-					color: [1.0, 0.0, 0.0],
-				},
-			],
-		)
-		.unwrap()
-	};
-
-	// building the index buffer
-	let index_buffer = glium::IndexBuffer::new(&display, PrimitiveType::TrianglesList, &[0u16, 1, 2]).unwrap();
-
-	// compiling shaders and linking them together
-	let program = program!(&display,
-		430 => {
-			vertex: "
-				#version 430
-				uniform mat4 matrix;
-				in vec2 position;
-				in vec3 color;
-				out vec3 vColor;
-				void main() {
-					gl_Position = vec4(position, 0.0, 1.0) * matrix;
-					vColor = color;
-				}
-			",
-
-			fragment: "
-				#version 430
-				in vec3 vColor;
-				out vec4 f_color;
-				void main() {
-					f_color = vec4(vColor, 1.0);
-				}
-				"
+	let vertices = [
+		Vertex {
+			position: [-0.5, -0.5],
+			color: [0.0, 1.0, 0.0, 1.0],
 		},
-	)
-	.unwrap();
+		Vertex {
+			position: [0.0, 0.5],
+			color: [0.0, 0.0, 1.0, 0.5],
+		},
+		Vertex {
+			position: [0.5, -0.5],
+			color: [1.0, 0.0, 0.0, 0.25],
+		},
+		Vertex {
+			position: [0.0, 0.0],
+			color: [1.0, 1.0, 1.0, 0.125],
+		},
+	];
 
-	// Here we draw the black background and triangle to the screen using the previously
-	// initialised resources.
-	//
-	// In this case we use a closure for simplicity, however keep in mind that most serious
-	// applications should probably use a function that takes the resources as an argument.
+	let indices = [0u16, 1, 2, 0, 2, 3];
+
+	let vertex_buffer = glium::VertexBuffer::new(&display, &vertices).unwrap();
+	let index_buffer = glium::IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &indices).unwrap();
+
+	let program = glium::Program::from_source(&display, VERTEX_SHADER, FRAGMENT_SHADER, None).unwrap();
+
 	let draw = move || {
-		// building the uniforms
-		let uniforms = uniform! {
+		let uniforms = glium::uniform! {
 			matrix: [
 				[1.0, 0.0, 0.0, 0.0],
 				[0.0, 1.0, 0.0, 0.0],
@@ -92,11 +46,16 @@ fn main()
 			]
 		};
 
-		// drawing a frame
+		let drawing_params = glium::DrawParameters {
+			blend: glium::Blend::alpha_blending(),
+			..Default::default()
+		};
+
 		let mut target = display.draw();
 		target.clear_color(0.0, 0.0, 0.0, 0.0);
+
 		target
-			.draw(&vertex_buffer, &index_buffer, &program, &uniforms, &Default::default())
+			.draw(&vertex_buffer, &index_buffer, &program, &uniforms, &drawing_params)
 			.unwrap();
 		target.finish().unwrap();
 	};
@@ -124,3 +83,33 @@ fn main()
 		};
 	});
 }
+
+#[derive(Copy, Clone)]
+struct Vertex
+{
+	position: [f32; 2],
+	color: [f32; 4],
+}
+
+glium::implement_vertex!(Vertex, position, color);
+
+const VERTEX_SHADER: &str = r#"
+	#version 430
+	uniform mat4 matrix;
+	in vec2 position;
+	in vec4 color;
+	out vec4 vColor;
+	void main() {
+		gl_Position = vec4(position, 0.0, 1.0) * matrix;
+		vColor = color;
+	}
+"#;
+
+const FRAGMENT_SHADER: &str = r#"
+	#version 430
+	in vec4 vColor;
+	out vec4 f_color;
+	void main() {
+		f_color = vColor;
+	}
+"#;
