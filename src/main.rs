@@ -62,19 +62,19 @@ impl Fernweh
 	{
 		let vertices = [
 			Vertex {
-				position: [-0.5, -0.5],
+				position: [-0.5, -0.5, -2.0],
 				color: [0.0, 1.0, 0.0, 1.0],
 			},
 			Vertex {
-				position: [0.0, 0.5],
+				position: [0.0, 0.5, -2.0],
 				color: [0.0, 0.0, 1.0, 0.5],
 			},
 			Vertex {
-				position: [0.5, -0.5],
+				position: [0.5, -0.5, -1.5],
 				color: [1.0, 0.0, 0.0, 0.25],
 			},
 			Vertex {
-				position: [0.0, 0.0],
+				position: [0.0, 0.0, -2.0],
 				color: [1.0, 1.0, 1.0, 0.125],
 			},
 		];
@@ -103,14 +103,14 @@ impl Fernweh
 		surface.clear_color(0.0, 0.0, 0.0, 0.0);
 
 		let (width, height) = surface.get_dimensions();
-		let aspect = (height as f32) / (width as f32);
+		let aspect = (width as f32) / (height as f32);
 
 		let rotation_matrix = Mat4f::from_angle_z(Rad(abs_time_s));
-		let aspect_matrix = Mat4f::from_nonuniform_scale(aspect, 1.0, 1.0);
-		let matrix = rotation_matrix * aspect_matrix;
+		let perspective_matrix = cgmath::perspective(Rad(1.5), aspect, 0.1, 128.0);
+		let matrix = perspective_matrix * rotation_matrix;
 
 		let uniforms = glium::uniform! {
-			matrix: Into::<[[f32; 4];4]>::into(matrix)
+			matrix: Into::<[[f32; 4];4]>::into(matrix.transpose())
 		};
 
 		let drawing_params = glium::DrawParameters {
@@ -133,7 +133,7 @@ impl Fernweh
 #[derive(Copy, Clone)]
 struct Vertex
 {
-	position: [f32; 2],
+	position: [f32; 3],
 	color: [f32; 4],
 }
 
@@ -142,11 +142,11 @@ glium::implement_vertex!(Vertex, position, color);
 const VERTEX_SHADER: &str = r#"
 	#version 430
 	uniform mat4 matrix;
-	in vec2 position;
+	in vec3 position;
 	in vec4 color;
 	out vec4 vColor;
 	void main() {
-		gl_Position = vec4(position, 0.0, 1.0) * matrix;
+		gl_Position = vec4(position, 1.0) * matrix;
 		vColor = color;
 	}
 "#;
