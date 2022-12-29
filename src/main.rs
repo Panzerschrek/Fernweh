@@ -1,4 +1,8 @@
+#[allow(dead_code)]
+mod math_types;
+
 use glium::{glutin, Surface};
+use math_types::*;
 
 fn main()
 {
@@ -43,13 +47,10 @@ fn main()
 		let (width, height) = target.get_dimensions();
 		let aspect = (height as f32) / (width as f32);
 
+		let matrix = Mat4f::from_nonuniform_scale(aspect, 1.0, 1.0);
+
 		let uniforms = glium::uniform! {
-			matrix: [
-				[aspect, 0.0, 0.0, 0.0],
-				[0.0, 1.0, 0.0, 0.0],
-				[0.0, 0.0, 1.0, 0.0],
-				[0.0, 0.0, 0.0, 1.0]
-			]
+			matrix: Into::<[[f32; 4];4]>::into(matrix)
 		};
 
 		let drawing_params = glium::DrawParameters {
