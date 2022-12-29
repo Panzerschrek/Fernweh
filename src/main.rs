@@ -40,14 +40,21 @@ fn main()
 
 	let program = glium::Program::from_source(&display, VERTEX_SHADER, FRAGMENT_SHADER, None).unwrap();
 
+	let start_time = std::time::Instant::now();
+
 	let draw = move || {
+		let cur_time = std::time::Instant::now();
+		let abs_time_s = (cur_time - start_time).as_secs_f32();
+
 		let mut target = display.draw();
 		target.clear_color(0.0, 0.0, 0.0, 0.0);
 
 		let (width, height) = target.get_dimensions();
 		let aspect = (height as f32) / (width as f32);
 
-		let matrix = Mat4f::from_nonuniform_scale(aspect, 1.0, 1.0);
+		let rotation_matrix = Mat4f::from_angle_z(Rad(abs_time_s));
+		let aspect_matrix = Mat4f::from_nonuniform_scale(aspect, 1.0, 1.0);
+		let matrix = rotation_matrix * aspect_matrix;
 
 		let uniforms = glium::uniform! {
 			matrix: Into::<[[f32; 4];4]>::into(matrix)
@@ -64,10 +71,6 @@ fn main()
 		target.finish().unwrap();
 	};
 
-	// Draw the triangle to the screen.
-	draw();
-
-	// the main loop
 	event_loop.run(move |event, _, control_flow| {
 		*control_flow = match event
 		{
@@ -75,13 +78,12 @@ fn main()
 			{
 				// Break from the main loop when the window is closed.
 				glutin::event::WindowEvent::CloseRequested => glutin::event_loop::ControlFlow::Exit,
-				// Redraw the triangle when the window is resized.
-				glutin::event::WindowEvent::Resized(..) =>
-				{
-					draw();
-					glutin::event_loop::ControlFlow::Poll
-				},
 				_ => glutin::event_loop::ControlFlow::Poll,
+			},
+			glutin::event::Event::MainEventsCleared =>
+			{
+				draw();
+				glutin::event_loop::ControlFlow::Poll
 			},
 			_ => glutin::event_loop::ControlFlow::Poll,
 		};
