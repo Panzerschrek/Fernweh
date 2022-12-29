@@ -37,12 +37,18 @@ fn main()
 	let program = glium::Program::from_source(&display, VERTEX_SHADER, FRAGMENT_SHADER, None).unwrap();
 
 	let draw = move || {
+		let mut target = display.draw();
+		target.clear_color(0.0, 0.0, 0.0, 0.0);
+
+		let (width, height) = target.get_dimensions();
+		let aspect = (height as f32) / (width as f32);
+
 		let uniforms = glium::uniform! {
 			matrix: [
-				[1.0, 0.0, 0.0, 0.0],
+				[aspect, 0.0, 0.0, 0.0],
 				[0.0, 1.0, 0.0, 0.0],
 				[0.0, 0.0, 1.0, 0.0],
-				[0.0, 0.0, 0.0, 1.0f32]
+				[0.0, 0.0, 0.0, 1.0]
 			]
 		};
 
@@ -50,9 +56,6 @@ fn main()
 			blend: glium::Blend::alpha_blending(),
 			..Default::default()
 		};
-
-		let mut target = display.draw();
-		target.clear_color(0.0, 0.0, 0.0, 0.0);
 
 		target
 			.draw(&vertex_buffer, &index_buffer, &program, &uniforms, &drawing_params)
