@@ -1,3 +1,5 @@
+mod camera_controller;
+mod keyboard_state;
 #[allow(dead_code)]
 mod math_types;
 
@@ -22,10 +24,14 @@ fn main()
 		.with_vsync(true);
 
 	let event_loop = glutin::event_loop::EventLoop::new();
+	let mut keyboard_state = keyboard_state::KeyboardState::new();
+	let mut camera_controller = camera_controller::CameraController::new();
 
 	let display = glium::Display::new(wb, cb, &event_loop).unwrap();
 
 	let fernweh = Fernweh::new(&display);
+
+	let mut prev_time = std::time::Instant::now();
 
 	event_loop.run(move |event, _, control_flow| {
 		*control_flow = match event
@@ -35,9 +41,28 @@ fn main()
 				// Break from the main loop when the window is closed.
 				glutin::event::WindowEvent::CloseRequested => glutin::event_loop::ControlFlow::Exit,
 				_ => glutin::event_loop::ControlFlow::Poll,
+				glutin::event::WindowEvent::KeyboardInput {
+					input: glutin::event::KeyboardInput {
+						state, virtual_keycode, ..
+					},
+					..
+				} =>
+				{
+					if let Some(code) = virtual_keycode
+					{
+						keyboard_state.process_event(state, code);
+					}
+					glutin::event_loop::ControlFlow::Poll
+				},
 			},
 			glutin::event::Event::MainEventsCleared =>
 			{
+				let cur_time = std::time::Instant::now();
+				let time_delta_s = (cur_time - prev_time).as_secs_f32().max(0.00001).min(0.1);
+				prev_time = cur_time;
+
+				camera_controller.update(time_delta_s, &keyboard_state);
+
 				let mut target = display.draw();
 				fernweh.draw(&mut target);
 				target.finish().unwrap();
