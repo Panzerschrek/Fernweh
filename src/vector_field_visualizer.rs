@@ -18,6 +18,7 @@ impl VectorFieldVisualizer
 		surface: &mut S,
 		vector_field: &vector_field::VectorField,
 		view_matrix: &Mat4f,
+		base_color: [f32; 3],
 	)
 	{
 		let field_size = vector_field.get_size();
@@ -25,7 +26,8 @@ impl VectorFieldVisualizer
 		let uniforms = glium::uniform! {
 			view_matrix: Into::<[[f32; 4];4]>::into(view_matrix.transpose()),
 			field_size: [field_size[0] as i32, field_size[1] as i32, field_size[2] as i32],
-			base_color: [0.2 as f32, 0.1, 0.2]
+			field_data: vector_field.get_buffer(),
+			base_color: base_color,
 		};
 
 		let drawing_params = glium::DrawParameters {
@@ -61,6 +63,11 @@ const VERTEX_SHADER: &str = r#"
 	uniform mat4 view_matrix;
 	uniform vec3 base_color;
 
+	layout(std430) buffer field_data
+	{
+		vec4 vecs[];
+	};
+
 	out vec3 f_color;
 
 	void main()
@@ -74,11 +81,15 @@ const VERTEX_SHADER: &str = r#"
 
 		vec3 position = vec3( ivec3(x, y, z) );
 
-		vec3 vec = float(gl_VertexID & 1) * position * 0.1;
-		position += vec;
+		float arrow_tip_factor = float(gl_VertexID & 1);
+		vec3 vec = vecs[ cell_id ].xyz;
+		float vec_len = length(vec);
+		vec3 vec_clamped = vec * ( min(vec_len, 1.5) / max(vec_len, 0.0001) );
+
+		position += vec_clamped * arrow_tip_factor;
 
 		gl_Position = vec4(position, 1.0) * view_matrix;
-		f_color = base_color * length(vec);
+		f_color = base_color * (0.1 + (1.0 - arrow_tip_factor) * vec_len);
 	}
 "#;
 

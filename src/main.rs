@@ -33,7 +33,7 @@ fn main()
 
 	let fernweh = Fernweh::new(&display);
 
-	let test_vector_field = vector_field::VectorField::new(&display, [16, 16, 16]);
+	let test_vector_field = create_test_vector_field(&display);
 	let vector_field_visualizer = vector_field_visualizer::VectorFieldVisualizer::new(&display);
 
 	let mut prev_time = std::time::Instant::now();
@@ -79,7 +79,7 @@ fn main()
 				let view_matrix = camera_controller.get_view_matrix(aspect);
 
 				fernweh.draw(&mut surface, &view_matrix);
-				vector_field_visualizer.visualize(&mut surface, &test_vector_field, &view_matrix);
+				vector_field_visualizer.visualize(&mut surface, &test_vector_field, &view_matrix, [1.0, 0.2, 1.0]);
 
 				surface.finish().unwrap();
 			},
@@ -196,3 +196,42 @@ const FRAGMENT_SHADER: &str = r#"
 		f_color = vColor;
 	}
 "#;
+
+fn create_test_vector_field(display: &glium::Display) -> vector_field::VectorField
+{
+	let size = [48 as u32, 32, 24];
+	let center = Vec3f::new(size[0] as f32, size[1] as f32, size[2] as f32) * 0.5;
+
+	let inv_scale = 32.0 / center.magnitude2();
+
+	let mut data = vec![[0.0; 4]; (size[0] * size[1] * size[2]) as usize];
+
+	// Simulate electric field of point charge.
+	for z in 0 .. size[2]
+	{
+		let dz = z as f32 - center.z;
+		for y in 0 .. size[1]
+		{
+			let dy = y as f32 - center.y;
+			for x in 0 .. size[0]
+			{
+				let dx = x as f32 - center.x;
+				let vec = Vec3f::new(dx, dy, dz);
+				let vec_square_len = vec.magnitude2();
+
+				let field_vec = if vec_square_len <= 0.0
+				{
+					Vec3f::zero()
+				}
+				else
+				{
+					vec / (inv_scale * vec_square_len * vec_square_len.sqrt())
+				};
+
+				data[(x + y * size[0] + z * (size[0] * size[1])) as usize] = field_vec.extend(0.0).into();
+			}
+		}
+	}
+
+	vector_field::VectorField::new_with_data(display, size, &data)
+}
