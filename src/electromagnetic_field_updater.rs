@@ -19,7 +19,7 @@ impl ElectromagneticFieldUpdater
 
 		let uniforms = glium::uniform! {
 			dt: time_delta_s,
-			field_size: [field_size[0] as i32, field_size[1] as i32, field_size[2] as i32],
+			field_size: field_size,
 			field_data: field.get_buffer(),
 		};
 
@@ -33,7 +33,7 @@ const SHADER: &str = r#"
 	layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 	uniform float dt;
-	uniform ivec3 field_size;
+	uniform uvec3 field_size;
 	layout(std430) buffer field_data
 	{
 		vec4 vecs[];
@@ -41,7 +41,7 @@ const SHADER: &str = r#"
 
 	void main()
 	{
-		int address = int(gl_GlobalInvocationID.x) + int(gl_GlobalInvocationID.y) * field_size.x + int(gl_GlobalInvocationID.z) * (field_size.x * field_size.y);
+		uint address = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * field_size.x + gl_GlobalInvocationID.z * (field_size.x * field_size.y);
 		vec3 vec = vecs[address].xyz;
 		vec *= 1.0 + dt;
 		vecs[address] = vec4(vec, 0.0);

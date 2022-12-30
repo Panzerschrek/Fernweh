@@ -25,7 +25,7 @@ impl VectorFieldVisualizer
 
 		let uniforms = glium::uniform! {
 			view_matrix: make_uniform_matrix(view_matrix),
-			field_size: [field_size[0] as i32, field_size[1] as i32, field_size[2] as i32],
+			field_size: field_size,
 			field_data: vector_field.get_buffer(),
 			base_color: base_color,
 		};
@@ -49,7 +49,7 @@ impl VectorFieldVisualizer
 const VERTEX_SHADER: &str = r#"
 	#version 430
 
-	uniform ivec3 field_size;
+	uniform uvec3 field_size;
 	uniform mat4 view_matrix;
 	uniform vec3 base_color;
 
@@ -62,14 +62,14 @@ const VERTEX_SHADER: &str = r#"
 
 	void main()
 	{
-		int cell_id = gl_VertexID / 2;
-		int layer_size = field_size.y * field_size.x;
-		int z = cell_id / layer_size;
-		int z_id = cell_id - z * layer_size;
-		int y = z_id / field_size.x;
-		int x = z_id % field_size.x;
+		uint cell_id = uint(gl_VertexID) / 2;
+		uint layer_size = field_size.y * field_size.x;
+		uint z = cell_id / layer_size;
+		uint z_id = cell_id - z * layer_size;
+		uint y = z_id / field_size.x;
+		uint x = z_id % field_size.x;
 
-		vec3 position = vec3( ivec3(x, y, z) );
+		vec3 position = vec3( uvec3(x, y, z) );
 
 		float arrow_tip_factor = float(gl_VertexID & 1);
 		vec3 vec = vecs[ cell_id ].xyz;
