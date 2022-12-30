@@ -3,7 +3,7 @@ mod keyboard_state;
 #[allow(dead_code)]
 mod math_types;
 
-use glium::glutin;
+use glium::{glutin, Surface};
 use math_types::*;
 
 fn main()
@@ -34,13 +34,16 @@ fn main()
 	let mut prev_time = std::time::Instant::now();
 
 	event_loop.run(move |event, _, control_flow| {
-		*control_flow = match event
+		match event
 		{
 			glutin::event::Event::WindowEvent { event, .. } => match event
 			{
 				// Break from the main loop when the window is closed.
-				glutin::event::WindowEvent::CloseRequested => glutin::event_loop::ControlFlow::Exit,
-				_ => glutin::event_loop::ControlFlow::Poll,
+				glutin::event::WindowEvent::CloseRequested =>
+				{
+					*control_flow = glutin::event_loop::ControlFlow::Exit;
+					return;
+				},
 				glutin::event::WindowEvent::KeyboardInput {
 					input: glutin::event::KeyboardInput {
 						state, virtual_keycode, ..
@@ -52,8 +55,9 @@ fn main()
 					{
 						keyboard_state.process_event(state, code);
 					}
-					glutin::event_loop::ControlFlow::Poll
 				},
+				_ =>
+				{},
 			},
 			glutin::event::Event::MainEventsCleared =>
 			{
@@ -63,13 +67,20 @@ fn main()
 
 				camera_controller.update(time_delta_s, &keyboard_state);
 
-				let mut target = display.draw();
-				fernweh.draw(&mut target);
-				target.finish().unwrap();
-				glutin::event_loop::ControlFlow::Poll
+				let mut surface = display.draw();
+
+				let (width, height) = surface.get_dimensions();
+				let aspect = (width as f32) / (height as f32);
+				let view_matrix = camera_controller.get_view_matrix(aspect);
+
+				fernweh.draw(&mut surface, &view_matrix);
+				surface.finish().unwrap();
 			},
-			_ => glutin::event_loop::ControlFlow::Poll,
+			_ =>
+			{},
 		};
+
+		*control_flow = glutin::event_loop::ControlFlow::Poll;
 	});
 }
 
@@ -78,7 +89,6 @@ struct Fernweh
 	vertex_buffer: glium::VertexBuffer<Vertex>,
 	index_buffer: glium::IndexBuffer<u16>,
 	program: glium::Program,
-	start_time: std::time::Instant,
 }
 
 impl Fernweh
@@ -87,19 +97,19 @@ impl Fernweh
 	{
 		let vertices = [
 			Vertex {
-				position: [-0.5, -0.5, -2.0],
+				position: [2.0, -0.5, -0.5],
 				color: [0.0, 1.0, 0.0, 1.0],
 			},
 			Vertex {
-				position: [0.0, 0.5, -2.0],
+				position: [2.0, 0.0, 0.5],
 				color: [0.0, 0.0, 1.0, 0.5],
 			},
 			Vertex {
-				position: [0.5, -0.5, -1.5],
+				position: [1.7, 0.5, -0.5],
 				color: [1.0, 0.0, 0.0, 0.25],
 			},
 			Vertex {
-				position: [0.0, 0.0, -2.0],
+				position: [2.3, 0.0, 0.0],
 				color: [1.0, 1.0, 1.0, 0.125],
 			},
 		];
@@ -116,26 +126,15 @@ impl Fernweh
 			vertex_buffer,
 			index_buffer,
 			program,
-			start_time: std::time::Instant::now(),
 		}
 	}
 
-	fn draw<S: glium::Surface>(&self, surface: &mut S)
+	fn draw<S: glium::Surface>(&self, surface: &mut S, view_matrix: &Mat4f)
 	{
-		let cur_time = std::time::Instant::now();
-		let abs_time_s = (cur_time - self.start_time).as_secs_f32();
-
 		surface.clear_color(0.0, 0.0, 0.0, 0.0);
 
-		let (width, height) = surface.get_dimensions();
-		let aspect = (width as f32) / (height as f32);
-
-		let rotation_matrix = Mat4f::from_angle_z(Rad(abs_time_s));
-		let perspective_matrix = cgmath::perspective(Rad(1.5), aspect, 0.1, 128.0);
-		let matrix = perspective_matrix * rotation_matrix;
-
 		let uniforms = glium::uniform! {
-			matrix: Into::<[[f32; 4];4]>::into(matrix.transpose())
+			matrix: Into::<[[f32; 4];4]>::into(view_matrix.transpose())
 		};
 
 		let drawing_params = glium::DrawParameters {
