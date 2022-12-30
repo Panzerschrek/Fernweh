@@ -1,11 +1,12 @@
 mod camera_controller;
+mod electromagnetic_field_updater;
+mod fields_simulator;
 mod keyboard_state;
 #[allow(dead_code)]
 mod math_types;
 mod ogl_common;
 mod vector_field;
 mod vector_field_visualizer;
-mod fields_simulator;
 
 use glium::{glutin, Surface};
 
@@ -32,7 +33,7 @@ fn main()
 
 	let display = glium::Display::new(wb, cb, &event_loop).unwrap();
 
-	let fields_simulator = fields_simulator::FieldsSimulator::new(&display);
+	let mut fields_simulator = fields_simulator::FieldsSimulator::new(&display);
 
 	let mut prev_time = std::time::Instant::now();
 
@@ -69,6 +70,7 @@ fn main()
 				prev_time = cur_time;
 
 				camera_controller.update(time_delta_s, &keyboard_state);
+				fields_simulator.update(time_delta_s);
 
 				let mut surface = display.draw();
 

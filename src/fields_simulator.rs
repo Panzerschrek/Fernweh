@@ -1,6 +1,4 @@
-use super::{vector_field, vector_field_visualizer};
-use super::math_types::*;
-use super::ogl_common::*;
+use super::{electromagnetic_field_updater, math_types::*, ogl_common::*, vector_field, vector_field_visualizer};
 
 pub struct FieldsSimulator
 {
@@ -9,6 +7,7 @@ pub struct FieldsSimulator
 	program: glium::Program,
 	test_vector_field: vector_field::VectorField,
 	vector_field_visualizer: vector_field_visualizer::VectorFieldVisualizer,
+	field_updater: electromagnetic_field_updater::ElectromagneticFieldUpdater,
 }
 
 impl FieldsSimulator
@@ -45,13 +44,22 @@ impl FieldsSimulator
 		let test_vector_field = create_test_vector_field(&display);
 		let vector_field_visualizer = vector_field_visualizer::VectorFieldVisualizer::new(&display);
 
+		let field_updater = electromagnetic_field_updater::ElectromagneticFieldUpdater::new(&display);
+
 		Self {
 			vertex_buffer,
 			index_buffer,
 			program,
 			test_vector_field,
 			vector_field_visualizer,
+			field_updater,
 		}
+	}
+
+	pub fn update(&mut self, time_delta_s: f32)
+	{
+		let time_scaled = time_delta_s * 0.2;
+		self.field_updater.update(&mut self.test_vector_field, time_scaled);
 	}
 
 	pub fn draw<S: glium::Surface>(&self, surface: &mut S, view_matrix: &Mat4f)
@@ -113,7 +121,7 @@ fn create_test_vector_field(display: &glium::Display) -> vector_field::VectorFie
 	let size = [48 as u32, 32, 24];
 	let center = Vec3f::new(size[0] as f32, size[1] as f32, size[2] as f32) * 0.5;
 
-	let inv_scale = 32.0 / center.magnitude2();
+	let inv_scale = 128.0 / center.magnitude2();
 
 	let mut data = vec![[0.0; 4]; (size[0] * size[1] * size[2]) as usize];
 
