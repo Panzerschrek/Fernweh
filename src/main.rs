@@ -2,6 +2,7 @@ mod camera_controller;
 mod keyboard_state;
 #[allow(dead_code)]
 mod math_types;
+mod vector_field;
 
 use glium::{glutin, Surface};
 use math_types::*;
@@ -30,6 +31,8 @@ fn main()
 	let display = glium::Display::new(wb, cb, &event_loop).unwrap();
 
 	let fernweh = Fernweh::new(&display);
+
+	let test_vector_field = vector_field::VectorField::new(&display, [16, 16, 16]);
 
 	let mut prev_time = std::time::Instant::now();
 
