@@ -1,4 +1,4 @@
-use super::{math_types::*, vector_field};
+use super::{math_types::*, vector_field, ogl_common::*};
 
 pub struct VectorFieldVisualizer
 {
@@ -24,20 +24,10 @@ impl VectorFieldVisualizer
 		let field_size = vector_field.get_size();
 
 		let uniforms = glium::uniform! {
-			view_matrix: Into::<[[f32; 4];4]>::into(view_matrix.transpose()),
+			view_matrix: make_uniform_matrix(view_matrix),
 			field_size: [field_size[0] as i32, field_size[1] as i32, field_size[2] as i32],
 			field_data: vector_field.get_buffer(),
 			base_color: base_color,
-		};
-
-		let drawing_params = glium::DrawParameters {
-			depth: glium::Depth {
-				test: glium::DepthTest::IfLessOrEqual,
-				write: true,
-				range: (0.0, 1.0),
-				clamp: glium::draw_parameters::DepthClamp::NoClamp,
-			},
-			..Default::default()
 		};
 
 		surface
@@ -50,7 +40,7 @@ impl VectorFieldVisualizer
 				},
 				&self.program,
 				&uniforms,
-				&drawing_params,
+				&get_default_drawing_params(),
 			)
 			.unwrap();
 	}

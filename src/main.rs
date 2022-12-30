@@ -4,9 +4,11 @@ mod keyboard_state;
 mod math_types;
 mod vector_field;
 mod vector_field_visualizer;
+mod ogl_common;
 
 use glium::{glutin, Surface};
 use math_types::*;
+use ogl_common::*;
 
 fn main()
 {
@@ -32,9 +34,6 @@ fn main()
 	let display = glium::Display::new(wb, cb, &event_loop).unwrap();
 
 	let fernweh = Fernweh::new(&display);
-
-	let test_vector_field = create_test_vector_field(&display);
-	let vector_field_visualizer = vector_field_visualizer::VectorFieldVisualizer::new(&display);
 
 	let mut prev_time = std::time::Instant::now();
 
@@ -79,7 +78,6 @@ fn main()
 				let view_matrix = camera_controller.get_view_matrix(aspect);
 
 				fernweh.draw(&mut surface, &view_matrix);
-				vector_field_visualizer.visualize(&mut surface, &test_vector_field, &view_matrix, [1.0, 0.2, 1.0]);
 
 				surface.finish().unwrap();
 			},
@@ -96,6 +94,8 @@ struct Fernweh
 	vertex_buffer: glium::VertexBuffer<Vertex>,
 	index_buffer: glium::IndexBuffer<u16>,
 	program: glium::Program,
+	test_vector_field: vector_field::VectorField,
+	vector_field_visualizer: vector_field_visualizer::VectorFieldVisualizer,
 }
 
 impl Fernweh
@@ -129,10 +129,15 @@ impl Fernweh
 
 		let program = glium::Program::from_source(display, VERTEX_SHADER, FRAGMENT_SHADER, None).unwrap();
 
+		let test_vector_field = create_test_vector_field(&display);
+		let vector_field_visualizer = vector_field_visualizer::VectorFieldVisualizer::new(&display);
+
 		Self {
 			vertex_buffer,
 			index_buffer,
 			program,
+			test_vector_field,
+			vector_field_visualizer,
 		}
 	}
 
@@ -142,17 +147,7 @@ impl Fernweh
 		surface.clear_depth(1.0);
 
 		let uniforms = glium::uniform! {
-			matrix: Into::<[[f32; 4];4]>::into(view_matrix.transpose())
-		};
-
-		let drawing_params = glium::DrawParameters {
-			depth: glium::Depth {
-				test: glium::DepthTest::IfLessOrEqual,
-				write: true,
-				range: (0.0, 1.0),
-				clamp: glium::draw_parameters::DepthClamp::NoClamp,
-			},
-			..Default::default()
+			matrix: make_uniform_matrix(view_matrix)
 		};
 
 		surface
@@ -161,9 +156,11 @@ impl Fernweh
 				&self.index_buffer,
 				&self.program,
 				&uniforms,
-				&drawing_params,
+				&get_default_drawing_params(),
 			)
 			.unwrap();
+
+		self.vector_field_visualizer.visualize(surface, &self.test_vector_field, view_matrix, [1.0, 0.2, 1.0]);
 	}
 }
 
