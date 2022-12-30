@@ -3,6 +3,7 @@ mod keyboard_state;
 #[allow(dead_code)]
 mod math_types;
 mod vector_field;
+mod vector_field_visualizer;
 
 use glium::{glutin, Surface};
 use math_types::*;
@@ -33,6 +34,7 @@ fn main()
 	let fernweh = Fernweh::new(&display);
 
 	let test_vector_field = vector_field::VectorField::new(&display, [16, 16, 16]);
+	let vector_field_visualizer = vector_field_visualizer::VectorFieldVisualizer::new(&display);
 
 	let mut prev_time = std::time::Instant::now();
 
@@ -77,6 +79,8 @@ fn main()
 				let view_matrix = camera_controller.get_view_matrix(aspect);
 
 				fernweh.draw(&mut surface, &view_matrix);
+				vector_field_visualizer.visualize(&mut surface, &test_vector_field, &view_matrix);
+
 				surface.finish().unwrap();
 			},
 			_ =>
@@ -135,13 +139,19 @@ impl Fernweh
 	fn draw<S: glium::Surface>(&self, surface: &mut S, view_matrix: &Mat4f)
 	{
 		surface.clear_color(0.0, 0.0, 0.0, 0.0);
+		surface.clear_depth(1.0);
 
 		let uniforms = glium::uniform! {
 			matrix: Into::<[[f32; 4];4]>::into(view_matrix.transpose())
 		};
 
 		let drawing_params = glium::DrawParameters {
-			blend: glium::Blend::alpha_blending(),
+			depth: glium::Depth {
+				test: glium::DepthTest::IfLessOrEqual,
+				write: true,
+				range: (0.0, 1.0),
+				clamp: glium::draw_parameters::DepthClamp::NoClamp,
+			},
 			..Default::default()
 		};
 
