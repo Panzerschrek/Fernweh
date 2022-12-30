@@ -3,6 +3,10 @@ name = "fernweh"
 version = "0.1.0"
 edition = "2018"
 
+[profile.release]
+panic = "abort"
+lto = true
+
 [dependencies]
 cgmath = { version = "0.18"}
 glium = "0.32.1"
