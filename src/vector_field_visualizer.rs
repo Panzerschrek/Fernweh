@@ -1,4 +1,4 @@
-use super::{math_types::*, vector_field, ogl_common::*};
+use super::{math_types::*, ogl_common::*, vector_field};
 
 pub struct VectorFieldVisualizer
 {

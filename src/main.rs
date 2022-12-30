@@ -2,13 +2,12 @@ mod camera_controller;
 mod keyboard_state;
 #[allow(dead_code)]
 mod math_types;
+mod ogl_common;
 mod vector_field;
 mod vector_field_visualizer;
-mod ogl_common;
+mod fields_simulator;
 
 use glium::{glutin, Surface};
-use math_types::*;
-use ogl_common::*;
 
 fn main()
 {
@@ -33,7 +32,7 @@ fn main()
 
 	let display = glium::Display::new(wb, cb, &event_loop).unwrap();
 
-	let fernweh = Fernweh::new(&display);
+	let fields_simulator = fields_simulator::FieldsSimulator::new(&display);
 
 	let mut prev_time = std::time::Instant::now();
 
@@ -77,7 +76,7 @@ fn main()
 				let aspect = (width as f32) / (height as f32);
 				let view_matrix = camera_controller.get_view_matrix(aspect);
 
-				fernweh.draw(&mut surface, &view_matrix);
+				fields_simulator.draw(&mut surface, &view_matrix);
 
 				surface.finish().unwrap();
 			},
@@ -87,148 +86,4 @@ fn main()
 
 		*control_flow = glutin::event_loop::ControlFlow::Poll;
 	});
-}
-
-struct Fernweh
-{
-	vertex_buffer: glium::VertexBuffer<Vertex>,
-	index_buffer: glium::IndexBuffer<u16>,
-	program: glium::Program,
-	test_vector_field: vector_field::VectorField,
-	vector_field_visualizer: vector_field_visualizer::VectorFieldVisualizer,
-}
-
-impl Fernweh
-{
-	fn new(display: &glium::Display) -> Self
-	{
-		let vertices = [
-			Vertex {
-				position: [2.0, -0.5, -0.5],
-				color: [0.0, 1.0, 0.0, 1.0],
-			},
-			Vertex {
-				position: [2.0, 0.0, 0.5],
-				color: [0.0, 0.0, 1.0, 0.5],
-			},
-			Vertex {
-				position: [1.7, 0.5, -0.5],
-				color: [1.0, 0.0, 0.0, 0.25],
-			},
-			Vertex {
-				position: [2.3, 0.0, 0.0],
-				color: [1.0, 1.0, 1.0, 0.125],
-			},
-		];
-
-		let indices = [0, 1, 2, 0, 2, 3];
-
-		let vertex_buffer = glium::VertexBuffer::new(display, &vertices).unwrap();
-		let index_buffer =
-			glium::IndexBuffer::new(display, glium::index::PrimitiveType::TrianglesList, &indices).unwrap();
-
-		let program = glium::Program::from_source(display, VERTEX_SHADER, FRAGMENT_SHADER, None).unwrap();
-
-		let test_vector_field = create_test_vector_field(&display);
-		let vector_field_visualizer = vector_field_visualizer::VectorFieldVisualizer::new(&display);
-
-		Self {
-			vertex_buffer,
-			index_buffer,
-			program,
-			test_vector_field,
-			vector_field_visualizer,
-		}
-	}
-
-	fn draw<S: glium::Surface>(&self, surface: &mut S, view_matrix: &Mat4f)
-	{
-		surface.clear_color(0.0, 0.0, 0.0, 0.0);
-		surface.clear_depth(1.0);
-
-		let uniforms = glium::uniform! {
-			matrix: make_uniform_matrix(view_matrix)
-		};
-
-		surface
-			.draw(
-				&self.vertex_buffer,
-				&self.index_buffer,
-				&self.program,
-				&uniforms,
-				&get_default_drawing_params(),
-			)
-			.unwrap();
-
-		self.vector_field_visualizer.visualize(surface, &self.test_vector_field, view_matrix, [1.0, 0.2, 1.0]);
-	}
-}
-
-#[derive(Copy, Clone)]
-struct Vertex
-{
-	position: [f32; 3],
-	color: [f32; 4],
-}
-
-glium::implement_vertex!(Vertex, position, color);
-
-const VERTEX_SHADER: &str = r#"
-	#version 430
-	uniform mat4 matrix;
-	in vec3 position;
-	in vec4 color;
-	out vec4 vColor;
-	void main() {
-		gl_Position = vec4(position, 1.0) * matrix;
-		vColor = color;
-	}
-"#;
-
-const FRAGMENT_SHADER: &str = r#"
-	#version 430
-	in vec4 vColor;
-	out vec4 f_color;
-	void main() {
-		f_color = vColor;
-	}
-"#;
-
-fn create_test_vector_field(display: &glium::Display) -> vector_field::VectorField
-{
-	let size = [48 as u32, 32, 24];
-	let center = Vec3f::new(size[0] as f32, size[1] as f32, size[2] as f32) * 0.5;
-
-	let inv_scale = 32.0 / center.magnitude2();
-
-	let mut data = vec![[0.0; 4]; (size[0] * size[1] * size[2]) as usize];
-
-	// Simulate electric field of point charge.
-	for z in 0 .. size[2]
-	{
-		let dz = z as f32 - center.z;
-		for y in 0 .. size[1]
-		{
-			let dy = y as f32 - center.y;
-			for x in 0 .. size[0]
-			{
-				let dx = x as f32 - center.x;
-				let vec = Vec3f::new(dx, dy, dz);
-				let vec_square_len = vec.magnitude2();
-
-				let field_vec = if vec_square_len <= 0.0
-				{
-					Vec3f::zero()
-				}
-				else
-				{
-					vec / (inv_scale * vec_square_len * vec_square_len.sqrt())
-				};
-
-				data[(x + y * size[0] + z * (size[0] * size[1])) as usize] = field_vec.extend(0.0).into();
-			}
-		}
-	}
-
-	vector_field::VectorField::new_with_data(display, size, &data)
 }
