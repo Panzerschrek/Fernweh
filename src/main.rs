@@ -20,7 +20,8 @@ fn main()
 		.with_min_inner_size(glutin::dpi::PhysicalSize {
 			width: 320,
 			height: 240,
-		});
+		})
+		.with_title("Fernweh");
 
 	let cb = glutin::ContextBuilder::new()
 		.with_gl_profile(glutin::GlProfile::Core)
