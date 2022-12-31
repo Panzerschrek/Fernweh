@@ -32,8 +32,11 @@ impl FieldsSimulator
 
 	pub fn update(&mut self, time_delta_s: f32)
 	{
-		let time_scaled = time_delta_s * 0.1;
-		self.field_updater.update(&mut self.electromagnetic_field, time_scaled);
+		let time_scaled = time_delta_s;
+		for _i in 0 .. 4
+		{
+			self.field_updater.update(&mut self.electromagnetic_field, time_scaled);
+		}
 	}
 
 	pub fn draw<S: glium::Surface>(&self, surface: &mut S, view_matrix: &Mat4f)
@@ -67,23 +70,38 @@ const MAGNETIC_FIELD_BASE_COLOR: [f32; 3] = [0.1, 0.1, 0.5];
 
 fn create_test_wave_field(display: &glium::Display) -> ElectromagneticField
 {
-	let size = [48 as u32, 48, 96];
+	let size = [72 as u32, 72, 192];
 
 	let len = (size[0] * size[1] * size[2]) as usize;
 	let mut electric_data = vec![[0.0; 4]; len];
 	let mut magnetic_data = vec![[0.0; 4]; len];
 
-	let x = size[0] / 2;
-	let y = size[1] / 2;
-	let frequency_mul_2pi = std::f32::consts::PI / 8.0;
-	let scale = 4.0;
-	for z in size[2] / 4 .. size[2] * 3 / 4
+	let center = Vec3f::new(size[0] as f32 * 0.5, size[1] as f32 * 0.5, size[2] as f32 * 0.25);
+	let frequency_mul_2pi = (2.0 * std::f32::consts::PI) / 12.0;
+
+	for z in 0 .. size[2]
 	{
-		let address = (x + y * size[0] + z * (size[0] * size[1])) as usize;
-		let e = (z as f32) * frequency_mul_2pi;
-		let m = e + std::f32::consts::PI * 0.5;
-		electric_data[address] = [scale * e.sin(), 0.0, 0.0, 0.0];
-		magnetic_data[address] = [0.0, scale * m.sin(), 0.0, 0.0];
+		let dz = z as f32 - center.z;
+		for y in 0 .. size[1]
+		{
+			let dy = y as f32 - center.y;
+			for x in 0 .. size[0]
+			{
+				let dx = x as f32 - center.x;
+				let vec = Vec3f::new(dx * 0.7, dy * 0.7, dz);
+				let vec_square_len = vec.magnitude2();
+				let scale = 8.0 * ((-1.0 / 64.0) * vec_square_len).exp();
+
+				let e = (z as f32) * frequency_mul_2pi;
+
+				let electric_vector = Vec3f::new(scale * e.sin(), 0.0, 0.0);
+				let magnetic_vector = Vec3f::unit_z().cross(electric_vector);
+
+				let address = (x + y * size[0] + z * (size[0] * size[1])) as usize;
+				electric_data[address] = electric_vector.extend(0.0).into();
+				magnetic_data[address] = magnetic_vector.extend(0.0).into();
+			}
+		}
 	}
 
 	ElectromagneticField {
