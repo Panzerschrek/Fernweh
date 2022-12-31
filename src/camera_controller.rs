@@ -64,7 +64,7 @@ impl CameraController
 			self.elevation = -half_pi;
 		}
 
-		let rotate = self.get_rotation();
+		let rotate = QuaternionF::from_angle_z(self.azimuth);
 
 		let forward_vector = rotate.rotate_vector(Vec3f::unit_x());
 		let right_vector = rotate.rotate_vector(Vec3f::unit_y());
