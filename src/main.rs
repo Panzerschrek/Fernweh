@@ -1,6 +1,7 @@
 mod camera_controller;
 mod electromagnetic_field;
 mod electromagnetic_field_updater;
+mod field_border_visualizer;
 mod fields_simulator;
 mod keyboard_state;
 #[allow(dead_code)]

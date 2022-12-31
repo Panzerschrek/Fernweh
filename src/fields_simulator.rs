@@ -1,61 +1,32 @@
 use super::{
-	electromagnetic_field::*, electromagnetic_field_updater, math_types::*, ogl_common::*, vector_field::*,
-	vector_field_visualizer,
+	electromagnetic_field::*, electromagnetic_field_updater, field_border_visualizer::*, math_types::*,
+	vector_field::*, vector_field_visualizer,
 };
 
 pub struct FieldsSimulator
 {
-	vertex_buffer: glium::VertexBuffer<Vertex>,
-	index_buffer: glium::IndexBuffer<u16>,
-	program: glium::Program,
 	electromagnetic_field: ElectromagneticField,
 	vector_field_visualizer: vector_field_visualizer::VectorFieldVisualizer,
 	field_updater: electromagnetic_field_updater::ElectromagneticFieldUpdater,
+	field_border_visualizer: FieldBorderVisualizer,
 }
 
 impl FieldsSimulator
 {
 	pub fn new(display: &glium::Display) -> Self
 	{
-		let vertices = [
-			Vertex {
-				position: [2.0, -0.5, -0.5],
-				color: [0.0, 1.0, 0.0, 1.0],
-			},
-			Vertex {
-				position: [2.0, 0.0, 0.5],
-				color: [0.0, 0.0, 1.0, 0.5],
-			},
-			Vertex {
-				position: [1.7, 0.5, -0.5],
-				color: [1.0, 0.0, 0.0, 0.25],
-			},
-			Vertex {
-				position: [2.3, 0.0, 0.0],
-				color: [1.0, 1.0, 1.0, 0.125],
-			},
-		];
-
-		let indices = [0, 1, 2, 0, 2, 3];
-
-		let vertex_buffer = glium::VertexBuffer::new(display, &vertices).unwrap();
-		let index_buffer =
-			glium::IndexBuffer::new(display, glium::index::PrimitiveType::TrianglesList, &indices).unwrap();
-
-		let program = glium::Program::from_source(display, VERTEX_SHADER, FRAGMENT_SHADER, None).unwrap();
-
 		let electromagnetic_field = create_test_wave_field(&display);
 		let vector_field_visualizer = vector_field_visualizer::VectorFieldVisualizer::new(&display);
 
 		let field_updater = electromagnetic_field_updater::ElectromagneticFieldUpdater::new(&display);
 
+		let field_border_visualizer = FieldBorderVisualizer::new(display);
+
 		Self {
-			vertex_buffer,
-			index_buffer,
-			program,
 			electromagnetic_field,
 			vector_field_visualizer,
 			field_updater,
+			field_border_visualizer,
 		}
 	}
 
@@ -70,20 +41,6 @@ impl FieldsSimulator
 		surface.clear_color(0.0, 0.0, 0.0, 0.0);
 		surface.clear_depth(1.0);
 
-		let uniforms = glium::uniform! {
-			matrix: make_uniform_matrix(view_matrix)
-		};
-
-		surface
-			.draw(
-				&self.vertex_buffer,
-				&self.index_buffer,
-				&self.program,
-				&uniforms,
-				&get_default_drawing_params(),
-			)
-			.unwrap();
-
 		self.vector_field_visualizer.visualize(
 			surface,
 			&self.electromagnetic_field.electric_field,
@@ -96,38 +53,14 @@ impl FieldsSimulator
 			view_matrix,
 			MAGNETIC_FIELD_BASE_COLOR,
 		);
+
+		self.field_border_visualizer.visualize(
+			surface,
+			view_matrix,
+			&self.electromagnetic_field.electric_field.get_size(),
+		);
 	}
 }
-
-#[derive(Copy, Clone)]
-struct Vertex
-{
-	position: [f32; 3],
-	color: [f32; 4],
-}
-
-glium::implement_vertex!(Vertex, position, color);
-
-const VERTEX_SHADER: &str = r#"
-	#version 430
-	uniform mat4 matrix;
-	in vec3 position;
-	in vec4 color;
-	out vec4 vColor;
-	void main() {
-		gl_Position = vec4(position, 1.0) * matrix;
-		vColor = color;
-	}
-"#;
-
-const FRAGMENT_SHADER: &str = r#"
-	#version 430
-	in vec4 vColor;
-	out vec4 f_color;
-	void main() {
-		f_color = vColor;
-	}
-"#;
 
 const ELECTRIC_FIELD_BASE_COLOR: [f32; 3] = [0.5, 0.1, 0.1];
 const MAGNETIC_FIELD_BASE_COLOR: [f32; 3] = [0.1, 0.1, 0.5];
