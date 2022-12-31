@@ -69,7 +69,7 @@ const VERTEX_SHADER: &str = r#"
 		uint y = z_id / field_size.x;
 		uint x = z_id % field_size.x;
 
-		vec3 position = vec3( uvec3(x, y, z) );
+		vec3 position = vec3( uvec3(x, y, z) ) + vec3(0.5, 0.5, 0.5);
 
 		float arrow_tip_factor = float(gl_VertexID & 1);
 		vec3 vec = vecs[ cell_id ].xyz;

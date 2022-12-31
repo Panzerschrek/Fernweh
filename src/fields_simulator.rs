@@ -61,7 +61,7 @@ impl FieldsSimulator
 
 	pub fn update(&mut self, time_delta_s: f32)
 	{
-		let time_scaled = time_delta_s * 0.2;
+		let time_scaled = time_delta_s * 0.1;
 		self.field_updater.update(&mut self.electromagnetic_field, time_scaled);
 	}
 

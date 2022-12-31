@@ -63,10 +63,10 @@ const SHADER_ELECTRIC_UPDATE: &str = r#"
 		uint address_y_minus = coord.x + (max(coord.y, 1) - 1) * field_size.x + coord.z * layer_size;
 		uint address_z_minus = coord.x + coord.y * field_size.x + (max(coord.z, 1) - 1) * layer_size;
 
-		vec3 vec_center  = electric_vecs[address_center ].xyz;
-		vec3 vec_x_minus = electric_vecs[address_x_minus].xyz;
-		vec3 vec_y_minus = electric_vecs[address_y_minus].xyz;
-		vec3 vec_z_minus = electric_vecs[address_z_minus].xyz;
+		vec3 vec_center  = magnetic_vecs[address_center ].xyz;
+		vec3 vec_x_minus = magnetic_vecs[address_x_minus].xyz;
+		vec3 vec_y_minus = magnetic_vecs[address_y_minus].xyz;
+		vec3 vec_z_minus = magnetic_vecs[address_z_minus].xyz;
 
 		vec3 x_derivative = vec_center - vec_x_minus;
 		vec3 y_derivative = vec_center - vec_y_minus;
@@ -78,8 +78,10 @@ const SHADER_ELECTRIC_UPDATE: &str = r#"
 				z_derivative.x - x_derivative.z,
 				x_derivative.y - y_derivative.x );
 
-		vec3 magnetic_field_change = -curl * dt;
-		magnetic_vecs[address_center] += vec4(magnetic_field_change, 0.0);
+		// TODO - use also current density here.
+		// TODO - ajust this value with medium electric constant.
+		vec3 electric_field_change = curl * dt;
+		electric_vecs[address_center] += vec4(electric_field_change, 0.0);
 	}
 "#;
 
@@ -108,10 +110,10 @@ const SHADER_MAGNETIC_UPDATE: &str = r#"
 		uint address_y_minus = coord.x + (max(coord.y, 1) - 1) * field_size.x + coord.z * layer_size;
 		uint address_z_minus = coord.x + coord.y * field_size.x + (max(coord.z, 1) - 1) * layer_size;
 
-		vec3 vec_center  = magnetic_vecs[address_center ].xyz;
-		vec3 vec_x_minus = magnetic_vecs[address_x_minus].xyz;
-		vec3 vec_y_minus = magnetic_vecs[address_y_minus].xyz;
-		vec3 vec_z_minus = magnetic_vecs[address_z_minus].xyz;
+		vec3 vec_center  = electric_vecs[address_center ].xyz;
+		vec3 vec_x_minus = electric_vecs[address_x_minus].xyz;
+		vec3 vec_y_minus = electric_vecs[address_y_minus].xyz;
+		vec3 vec_z_minus = electric_vecs[address_z_minus].xyz;
 
 		vec3 x_derivative = vec_center - vec_x_minus;
 		vec3 y_derivative = vec_center - vec_y_minus;
@@ -123,7 +125,8 @@ const SHADER_MAGNETIC_UPDATE: &str = r#"
 				z_derivative.x - x_derivative.z,
 				x_derivative.y - y_derivative.x );
 
-		vec3 electric_field_change = curl * dt;
-		electric_vecs[address_center] += vec4(electric_field_change, 0.0);
+		// TODO - ajust this value with medium magnetic constant.
+		vec3 magnetic_field_change = -curl * dt;
+		magnetic_vecs[address_center] += vec4(magnetic_field_change, 0.0);
 	}
 "#;
