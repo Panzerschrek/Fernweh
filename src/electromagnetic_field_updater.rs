@@ -62,15 +62,21 @@ const SHADER_ELECTRIC_UPDATE: &str = r#"
 		uint address_x_minus = (max(coord.x, 1) - 1) + coord.y * field_size.x + coord.z * layer_size;
 		uint address_y_minus = coord.x + (max(coord.y, 1) - 1) * field_size.x + coord.z * layer_size;
 		uint address_z_minus = coord.x + coord.y * field_size.x + (max(coord.z, 1) - 1) * layer_size;
+		uint address_x_plus = (min(coord.x, field_size.x - 2) + 1) + coord.y * field_size.x + coord.z * layer_size;
+		uint address_y_plus = coord.x + (min(coord.y, field_size.y - 2) + 1) * field_size.x + coord.z * layer_size;
+		uint address_z_plus = coord.x + coord.y * field_size.x + (min(coord.z, field_size.z - 2) + 1) * layer_size;
 
 		vec3 vec_center  = magnetic_vecs[address_center ].xyz;
 		vec3 vec_x_minus = magnetic_vecs[address_x_minus].xyz;
 		vec3 vec_y_minus = magnetic_vecs[address_y_minus].xyz;
 		vec3 vec_z_minus = magnetic_vecs[address_z_minus].xyz;
+		vec3 vec_x_plus = magnetic_vecs[address_x_plus].xyz;
+		vec3 vec_y_plus = magnetic_vecs[address_y_plus].xyz;
+		vec3 vec_z_plus = magnetic_vecs[address_z_plus].xyz;
 
-		vec3 x_derivative = vec_center - vec_x_minus;
-		vec3 y_derivative = vec_center - vec_y_minus;
-		vec3 z_derivative = vec_center - vec_z_minus;
+		vec3 x_derivative = (vec_x_plus - vec_x_minus) * 0.5;
+		vec3 y_derivative = (vec_y_plus - vec_y_minus) * 0.5;
+		vec3 z_derivative = (vec_z_plus - vec_z_minus) * 0.5;
 
 		vec3 curl =
 			vec3(
@@ -109,15 +115,21 @@ const SHADER_MAGNETIC_UPDATE: &str = r#"
 		uint address_x_minus = (max(coord.x, 1) - 1) + coord.y * field_size.x + coord.z * layer_size;
 		uint address_y_minus = coord.x + (max(coord.y, 1) - 1) * field_size.x + coord.z * layer_size;
 		uint address_z_minus = coord.x + coord.y * field_size.x + (max(coord.z, 1) - 1) * layer_size;
+		uint address_x_plus = (min(coord.x, field_size.x - 2) + 1) + coord.y * field_size.x + coord.z * layer_size;
+		uint address_y_plus = coord.x + (min(coord.y, field_size.y - 2) + 1) * field_size.x + coord.z * layer_size;
+		uint address_z_plus = coord.x + coord.y * field_size.x + (min(coord.z, field_size.z - 2) + 1) * layer_size;
 
 		vec3 vec_center  = electric_vecs[address_center ].xyz;
 		vec3 vec_x_minus = electric_vecs[address_x_minus].xyz;
 		vec3 vec_y_minus = electric_vecs[address_y_minus].xyz;
 		vec3 vec_z_minus = electric_vecs[address_z_minus].xyz;
+		vec3 vec_x_plus = electric_vecs[address_x_plus].xyz;
+		vec3 vec_y_plus = electric_vecs[address_y_plus].xyz;
+		vec3 vec_z_plus = electric_vecs[address_z_plus].xyz;
 
-		vec3 x_derivative = vec_center - vec_x_minus;
-		vec3 y_derivative = vec_center - vec_y_minus;
-		vec3 z_derivative = vec_center - vec_z_minus;
+		vec3 x_derivative = (vec_x_plus - vec_x_minus) * 0.5;
+		vec3 y_derivative = (vec_y_plus - vec_y_minus) * 0.5;
+		vec3 z_derivative = (vec_z_plus - vec_z_minus) * 0.5;
 
 		vec3 curl =
 			vec3(

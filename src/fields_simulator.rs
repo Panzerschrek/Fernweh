@@ -143,13 +143,14 @@ fn create_test_wave_field(display: &glium::Display) -> ElectromagneticField
 	let x = size[0] / 2;
 	let y = size[1] / 2;
 	let frequency_mul_2pi = std::f32::consts::PI / 8.0;
+	let scale = 4.0;
 	for z in size[2] / 4 .. size[2] * 3 / 4
 	{
 		let address = (x + y * size[0] + z * (size[0] * size[1])) as usize;
 		let e = (z as f32) * frequency_mul_2pi;
 		let m = e + std::f32::consts::PI * 0.5;
-		electric_data[address] = [e.sin(), 0.0, 0.0, 0.0];
-		magnetic_data[address] = [0.0, m.sin(), 0.0, 0.0];
+		electric_data[address] = [scale * e.sin(), 0.0, 0.0, 0.0];
+		magnetic_data[address] = [0.0, scale * m.sin(), 0.0, 0.0];
 	}
 
 	ElectromagneticField {
