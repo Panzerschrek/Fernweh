@@ -74,12 +74,12 @@ const VERTEX_SHADER: &str = r#"
 		float arrow_tip_factor = float(gl_VertexID & 1);
 		vec3 vec = vecs[ cell_id ].xyz;
 		float vec_len = length(vec);
-		vec3 vec_clamped = vec * ( min(vec_len, 1.5) / max(vec_len, 0.0001) );
+		vec3 vec_clamped = vec * ( min(vec_len, 1.5) / max(vec_len, 0.0000001) );
 
 		position += vec_clamped * arrow_tip_factor;
 
 		gl_Position = vec4(position, 1.0) * view_matrix;
-		f_color = base_color * (0.1 + (1.0 - arrow_tip_factor) * vec_len);
+		f_color = base_color * (0.02 + (1.0 - arrow_tip_factor) * vec_len);
 	}
 "#;
 
