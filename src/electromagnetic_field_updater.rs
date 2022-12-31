@@ -1,4 +1,4 @@
-use super::vector_field;
+use super::electromagnetic_field::*;
 
 pub struct ElectromagneticFieldUpdater
 {
@@ -13,14 +13,16 @@ impl ElectromagneticFieldUpdater
 		Self { shader }
 	}
 
-	pub fn update(&self, field: &mut vector_field::VectorField, time_delta_s: f32)
+	pub fn update(&self, field: &mut ElectromagneticField, time_delta_s: f32)
 	{
-		let field_size = field.get_size();
+		assert_eq!(field.electric_field.get_size(), field.magnetic_field.get_size());
+
+		let field_size = field.electric_field.get_size();
 
 		let uniforms = glium::uniform! {
 			dt: time_delta_s,
 			field_size: field_size,
-			field_data: field.get_buffer(),
+			field_data: field.electric_field.get_buffer(),
 		};
 
 		self.shader

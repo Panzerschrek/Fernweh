@@ -1,4 +1,5 @@
 mod camera_controller;
+mod electromagnetic_field;
 mod electromagnetic_field_updater;
 mod fields_simulator;
 mod keyboard_state;

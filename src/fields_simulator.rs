@@ -1,11 +1,14 @@
-use super::{electromagnetic_field_updater, math_types::*, ogl_common::*, vector_field, vector_field_visualizer};
+use super::{
+	electromagnetic_field::*, electromagnetic_field_updater, math_types::*, ogl_common::*, vector_field::*,
+	vector_field_visualizer,
+};
 
 pub struct FieldsSimulator
 {
 	vertex_buffer: glium::VertexBuffer<Vertex>,
 	index_buffer: glium::IndexBuffer<u16>,
 	program: glium::Program,
-	test_vector_field: vector_field::VectorField,
+	electromagnetic_field: ElectromagneticField,
 	vector_field_visualizer: vector_field_visualizer::VectorFieldVisualizer,
 	field_updater: electromagnetic_field_updater::ElectromagneticFieldUpdater,
 }
@@ -41,7 +44,7 @@ impl FieldsSimulator
 
 		let program = glium::Program::from_source(display, VERTEX_SHADER, FRAGMENT_SHADER, None).unwrap();
 
-		let test_vector_field = create_test_vector_field(&display);
+		let electromagnetic_field = create_test_field(&display);
 		let vector_field_visualizer = vector_field_visualizer::VectorFieldVisualizer::new(&display);
 
 		let field_updater = electromagnetic_field_updater::ElectromagneticFieldUpdater::new(&display);
@@ -50,7 +53,7 @@ impl FieldsSimulator
 			vertex_buffer,
 			index_buffer,
 			program,
-			test_vector_field,
+			electromagnetic_field,
 			vector_field_visualizer,
 			field_updater,
 		}
@@ -59,7 +62,7 @@ impl FieldsSimulator
 	pub fn update(&mut self, time_delta_s: f32)
 	{
 		let time_scaled = time_delta_s * 0.2;
-		self.field_updater.update(&mut self.test_vector_field, time_scaled);
+		self.field_updater.update(&mut self.electromagnetic_field, time_scaled);
 	}
 
 	pub fn draw<S: glium::Surface>(&self, surface: &mut S, view_matrix: &Mat4f)
@@ -81,8 +84,12 @@ impl FieldsSimulator
 			)
 			.unwrap();
 
-		self.vector_field_visualizer
-			.visualize(surface, &self.test_vector_field, view_matrix, [1.0, 0.2, 1.0]);
+		self.vector_field_visualizer.visualize(
+			surface,
+			&self.electromagnetic_field.electric_field,
+			view_matrix,
+			[1.0, 0.2, 1.0],
+		);
 	}
 }
 
@@ -116,9 +123,17 @@ const FRAGMENT_SHADER: &str = r#"
 	}
 "#;
 
-fn create_test_vector_field(display: &glium::Display) -> vector_field::VectorField
+fn create_test_field(display: &glium::Display) -> ElectromagneticField
 {
 	let size = [48 as u32, 32, 24];
+	ElectromagneticField {
+		electric_field: create_test_static_charge_field(display, size),
+		magnetic_field: VectorField::new(display, size),
+	}
+}
+
+fn create_test_static_charge_field(display: &glium::Display, size: [u32; 3]) -> VectorField
+{
 	let center = Vec3f::new(size[0] as f32, size[1] as f32, size[2] as f32) * 0.5;
 
 	let inv_scale = 128.0 / center.magnitude2();
@@ -152,5 +167,5 @@ fn create_test_vector_field(display: &glium::Display) -> vector_field::VectorFie
 		}
 	}
 
-	vector_field::VectorField::new_with_data(display, size, &data)
+	VectorField::new_with_data(display, size, &data)
 }
