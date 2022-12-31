@@ -70,13 +70,13 @@ const MAGNETIC_FIELD_BASE_COLOR: [f32; 3] = [0.1, 0.1, 0.5];
 
 fn create_test_wave_field(display: &glium::Display) -> ElectromagneticField
 {
-	let size = [72 as u32, 72, 192];
+	let size = [72, 192 as u32, 72];
 
 	let len = (size[0] * size[1] * size[2]) as usize;
 	let mut electric_data = vec![[0.0; 4]; len];
 	let mut magnetic_data = vec![[0.0; 4]; len];
 
-	let center = Vec3f::new(size[0] as f32 * 0.5, size[1] as f32 * 0.5, size[2] as f32 * 0.25);
+	let center = Vec3f::new(size[0] as f32 * 0.5, size[1] as f32 * 0.25, size[2] as f32 * 0.5);
 	let frequency_mul_2pi = (2.0 * std::f32::consts::PI) / 12.0;
 
 	for z in 0 .. size[2]
@@ -88,14 +88,14 @@ fn create_test_wave_field(display: &glium::Display) -> ElectromagneticField
 			for x in 0 .. size[0]
 			{
 				let dx = x as f32 - center.x;
-				let vec = Vec3f::new(dx * 0.7, dy * 0.7, dz);
+				let vec = Vec3f::new(dx * 0.7, dy, dz * 0.7);
 				let vec_square_len = vec.magnitude2();
 				let scale = 8.0 * ((-1.0 / 64.0) * vec_square_len).exp();
 
-				let e = (z as f32) * frequency_mul_2pi;
+				let e = (y as f32) * frequency_mul_2pi;
 
 				let electric_vector = Vec3f::new(scale * e.sin(), 0.0, 0.0);
-				let magnetic_vector = Vec3f::unit_z().cross(electric_vector);
+				let magnetic_vector = Vec3f::unit_y().cross(electric_vector);
 
 				let address = (x + y * size[0] + z * (size[0] * size[1])) as usize;
 				electric_data[address] = electric_vector.extend(0.0).into();
