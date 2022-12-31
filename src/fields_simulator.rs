@@ -88,7 +88,13 @@ impl FieldsSimulator
 			surface,
 			&self.electromagnetic_field.electric_field,
 			view_matrix,
-			[1.0, 0.2, 1.0],
+			ELECTRIC_FIELD_BASE_COLOR,
+		);
+		self.vector_field_visualizer.visualize(
+			surface,
+			&self.electromagnetic_field.magnetic_field,
+			view_matrix,
+			MAGNETIC_FIELD_BASE_COLOR,
 		);
 	}
 }
@@ -122,6 +128,9 @@ const FRAGMENT_SHADER: &str = r#"
 		f_color = vColor;
 	}
 "#;
+
+const ELECTRIC_FIELD_BASE_COLOR: [f32; 3] = [0.5, 0.1, 0.1];
+const MAGNETIC_FIELD_BASE_COLOR: [f32; 3] = [0.1, 0.1, 0.5];
 
 fn create_test_field(display: &glium::Display) -> ElectromagneticField
 {
