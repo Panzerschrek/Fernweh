@@ -44,7 +44,7 @@ impl FieldsSimulator
 
 		let program = glium::Program::from_source(display, VERTEX_SHADER, FRAGMENT_SHADER, None).unwrap();
 
-		let electromagnetic_field = create_test_field(&display);
+		let electromagnetic_field = create_test_wave_field(&display);
 		let vector_field_visualizer = vector_field_visualizer::VectorFieldVisualizer::new(&display);
 
 		let field_updater = electromagnetic_field_updater::ElectromagneticFieldUpdater::new(&display);
@@ -131,6 +131,32 @@ const FRAGMENT_SHADER: &str = r#"
 
 const ELECTRIC_FIELD_BASE_COLOR: [f32; 3] = [0.5, 0.1, 0.1];
 const MAGNETIC_FIELD_BASE_COLOR: [f32; 3] = [0.1, 0.1, 0.5];
+
+fn create_test_wave_field(display: &glium::Display) -> ElectromagneticField
+{
+	let size = [48 as u32, 48, 96];
+
+	let len = (size[0] * size[1] * size[2]) as usize;
+	let mut electric_data = vec![[0.0; 4]; len];
+	let mut magnetic_data = vec![[0.0; 4]; len];
+
+	let x = size[0] / 2;
+	let y = size[1] / 2;
+	let frequency_mul_2pi = std::f32::consts::PI / 8.0;
+	for z in size[2] / 4 .. size[2] * 3 / 4
+	{
+		let address = (x + y * size[0] + z * (size[0] * size[1])) as usize;
+		let e = (z as f32) * frequency_mul_2pi;
+		let m = e + std::f32::consts::PI * 0.5;
+		electric_data[address] = [e.sin(), 0.0, 0.0, 0.0];
+		magnetic_data[address] = [0.0, m.sin(), 0.0, 0.0];
+	}
+
+	ElectromagneticField {
+		electric_field: VectorField::new_with_data(display, size, &electric_data),
+		magnetic_field: VectorField::new_with_data(display, size, &magnetic_data),
+	}
+}
 
 fn create_test_field(display: &glium::Display) -> ElectromagneticField
 {
